@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Air Quality Visualizer - Real-time Pollution Monitoring</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+            animation: slideDown 0.6s ease-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .header h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+            letter-spacing: 1px;
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.95;
+        }
+
+        .main-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 30px;
+            align-items: start;
+        }
+
+        .container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .chart-container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 30px;
+            text-align: center;
+            animation: fadeIn 0.8s ease-out 0.2s both;
+        }
+
+        .form-section {
+            background: linear-gradient(135deg, #f5f7fa 0%, #f0f4f9 100%);
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            border-left: 5px solid #667eea;
+        }
+
+        .form-section h2 {
+            color: #333;
+            margin-bottom: 25px;
+            font-size: 1.4em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 0.95em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-group select {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1em;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .form-group select:hover {
+            border-color: #667eea;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+        }
+
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 25px;
+        }
+
+        button {
+            flex: 1;
+            padding: 14px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            box-shadow: 0 5px 15px rgba(245, 87, 108, 0.3);
+        }
+
+        .btn-secondary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(245, 87, 108, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .chart-section img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            margin-top: 20px;
+            border: 2px solid #f0f0f0;
+            transition: transform 0.3s ease;
+        }
+
+        .chart-section img:hover {
+            transform: scale(1.02);
+        }
+
+        .info-message {
+            background: linear-gradient(135deg, #e8f4f8 0%, #e0f2f1 100%);
+            border-left: 5px solid #17a2b8;
+            padding: 16px 20px;
+            border-radius: 8px;
+            color: #0c5460;
+            margin-top: 20px;
+            font-weight: 500;
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+        }
+
+        .info-message-icon {
+            font-size: 1.3em;
+            flex-shrink: 0;
+        }
+
+        .warning-message {
+            background: linear-gradient(135deg, #fff3cd 0%, #ffe8b6 100%);
+            border-left-color: #ffc107;
+            color: #856404;
+        }
+
+        .success-message {
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+            border-left-color: #28a745;
+            color: #155724;
+        }
+
+        .stats-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-top: 30px;
+            text-align: center;
+        }
+
+        .stats-box h3 {
+            font-size: 1.1em;
+            margin-bottom: 10px;
+            opacity: 0.9;
+        }
+
+        .stats-box .stat-value {
+            font-size: 2em;
+            font-weight: 700;
+        }
+
+        .pollutant-legend {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 12px;
+            margin-top: 20px;
+            font-size: 0.9em;
+        }
+
+        .pollutant-legend h4 {
+            color: #333;
+            margin-bottom: 15px;
+            font-weight: 700;
+        }
+
+        .pollutant-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+            color: #666;
+            line-height: 1.4;
+        }
+
+        .pollutant-badge {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .badge-pm25 { background: #e74c3c; }
+        .badge-pm10 { background: #e67e22; }
+        .badge-no2 { background: #f39c12; }
+        .badge-so2 { background: #27ae60; }
+        .badge-co { background: #3498db; }
+
+        .no-chart-placeholder {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 400px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #f0f4f9 100%);
+            border-radius: 12px;
+            color: #999;
+        }
+
+        .no-chart-placeholder .icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        .no-chart-placeholder p {
+            font-size: 1.1em;
+            font-weight: 500;
+        }
+
+        @media (max-width: 1024px) {
+            .main-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2em;
+            }
+
+            .container {
+                padding: 20px;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+
+            button {
+                width: 100%;
+            }
+
+            .form-section {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🌍 Air Quality Visualizer</h1>
+        <p>Real-time Pollution Monitoring & Historical Data Analysis</p>
+    </div>
+
+    <div class="main-container">
+        <div class="container">
+            <div class="form-section">
+                <h2>📊 Select Data to Visualize</h2>
+                
+                <form th:action="@{/}" method="get" id="chartForm">
+                    <div class="form-group">
+                        <label for="citySelect">City:</label>
+                        <select id="citySelect" name="city" required>
+                            <option value="">-- Select a City --</option>
+                            <option th:each="c : ${cities}" th:value="${c}" th:text="${c}" th:selected="${c == city}"></option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="pollutantSelect">Pollutant:</label>
+                        <select id="pollutantSelect" name="pollutant" required>
+                            <option value="">-- Select a Pollutant --</option>
+                            <option value="pm25" th:selected="${pollutant == 'pm25'}">PM2.5 (Fine Particulates)</option>
+                            <option value="pm10" th:selected="${pollutant == 'pm10'}">PM10 (Coarse Particulates)</option>
+                            <option value="no2" th:selected="${pollutant == 'no2'}">NO₂ (Nitrogen Dioxide)</option>
+                            <option value="so2" th:selected="${pollutant == 'so2'}">SO₂ (Sulfur Dioxide)</option>
+                            <option value="co" th:selected="${pollutant == 'co'}">CO (Carbon Monoxide)</option>
+                        </select>
+                    </div>
+
+                    <div class="button-group">
+                        <button type="submit" class="btn-primary">
+                            <span>📈</span> Generate Chart
+                        </button>
+                        <button type="reset" class="btn-secondary">
+                            <span>🔄</span> Clear
+                        </button>
+                    </div>
+                </form>
+
+                <div class="info-message">
+                    <div class="info-message-icon">ℹ️</div>
+                    <div>Select a city and pollutant to visualize historical air quality trends. Data spans multiple years for comprehensive analysis.</div>
+                </div>
+
+                <div class="pollutant-legend">
+                    <h4>📋 Pollutant Information</h4>
+                    <div class="pollutant-item">
+                        <span class="pollutant-badge badge-pm25"></span>
+                        <strong>PM2.5:</strong> Fine particulate matter (≤2.5μm) from vehicles, industries, and biomass burning
+                    </div>
+                    <div class="pollutant-item">
+                        <span class="pollutant-badge badge-pm10"></span>
+                        <strong>PM10:</strong> Coarse particulate matter (2.5-10μm) from dust, pollen, and construction
+                    </div>
+                    <div class="pollutant-item">
+                        <span class="pollutant-badge badge-no2"></span>
+                        <strong>NO₂:</strong> Nitrogen dioxide from vehicle emissions and power plants
+                    </div>
+                    <div class="pollutant-item">
+                        <span class="pollutant-badge badge-so2"></span>
+                        <strong>SO₂:</strong> Sulfur dioxide from fossil fuel combustion and industrial processes
+                    </div>
+                    <div class="pollutant-item">
+                        <span class="pollutant-badge badge-co"></span>
+                        <strong>CO:</strong> Carbon monoxide from incomplete combustion in vehicles and heating
+                    </div>
+                </div>
+
+                <div class="stats-box">
+                    <h3>📊 Dataset Information</h3>
+                    <div class="stat-value" th:text="${cities != null ? cities.size() : '0'} + ' Cities'"></div>
+                    <p style="margin-top: 8px; opacity: 0.9;">Historical data from multiple years</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="chart-container">
+            <div class="chart-section" th:if="${chartUrl}">
+                <h2 style="color: #333; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
+                    <span>📈</span> Pollution Trend Chart
+                </h2>
+                <img id="pollutionChart" th:src="${chartUrl}" alt="Pollution Data Chart">
+                
+                <!-- Data Statistics Section -->
+                <div id="dataStats" style="margin-top: 20px; display: none;">
+                    <div class="stats-box" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 12px; text-align: center;">
+                        <h3 style="font-size: 1.1em; margin-bottom: 15px; opacity: 0.9;">📊 Data Statistics</h3>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                            <div>
+                                <div style="font-size: 0.9em; opacity: 0.8; margin-bottom: 5px;">Records Found</div>
+                                <div id="recordsCount" style="font-size: 1.8em; font-weight: bold;">--</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 0.9em; opacity: 0.8; margin-bottom: 5px;">Average</div>
+                                <div id="avgValue" style="font-size: 1.8em; font-weight: bold;">--</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 0.9em; opacity: 0.8; margin-bottom: 5px;">Minimum</div>
+                                <div id="minValue" style="font-size: 1.8em; font-weight: bold;">--</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 0.9em; opacity: 0.8; margin-bottom: 5px;">Maximum</div>
+                                <div id="maxValue" style="font-size: 1.8em; font-weight: bold;">--</div>
+                            </div>
+                        </div>
+                        <div style="border-top: 1px solid rgba(255,255,255,0.2); padding-top: 10px; font-size: 0.9em;">
+                            <span id="dateRange" style="opacity: 0.9;">--</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="success-message info-message" style="margin-top: 20px;">
+                    <div class="info-message-icon">✅</div>
+                    <div>Chart generated successfully. Analyze the trends to understand pollution patterns.</div>
+                </div>
+            </div>
+
+            <div th:if="!${chartUrl}" class="no-chart-placeholder">
+                <div class="icon">📉</div>
+                <p>Select a city and pollutant to generate a chart</p>
+                <p style="font-size: 0.9em; color: #aaa; margin-top: 10px;">Your visualization will appear here</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Cache-bust the chart image and fetch data statistics
+        function updateChart() {
+            const city = document.getElementById('citySelect').value;
+            const pollutant = document.getElementById('pollutantSelect').value;
+            
+            if (city && pollutant) {
+                // Add timestamp for cache-busting
+                const timestamp = new Date().getTime();
+                const chartImg = document.getElementById('pollutionChart');
+                if (chartImg) {
+                    chartImg.src = '/chart.png?city=' + encodeURIComponent(city) + 
+                                   '&pollutant=' + encodeURIComponent(pollutant) + 
+                                   '&t=' + timestamp;
+                    
+                    // Fetch data statistics from the API
+                    fetchDataStatistics(city, pollutant);
+                }
+            }
+        }
+        
+        function fetchDataStatistics(city, pollutant) {
+            fetch('/api/data-info?city=' + encodeURIComponent(city) + 
+                  '&pollutant=' + encodeURIComponent(pollutant))
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Data statistics:', data);
+                    if (data.status === 'success' && data.recordsFound > 0) {
+                        // Update statistics display
+                        document.getElementById('recordsCount').textContent = 
+                            data.recordsFound.toLocaleString();
+                        document.getElementById('avgValue').textContent = 
+                            data.average ? data.average.toFixed(2) : 'N/A';
+                        document.getElementById('minValue').textContent = 
+                            data.minimum ? data.minimum.toFixed(2) : 'N/A';
+                        document.getElementById('maxValue').textContent = 
+                            data.maximum ? data.maximum.toFixed(2) : 'N/A';
+                        document.getElementById('dateRange').textContent = 
+                            'Period: ' + (data.startDate || 'N/A') + ' to ' + 
+                            (data.endDate || 'N/A');
+                        
+                        // Show statistics box
+                        document.getElementById('dataStats').style.display = 'block';
+                    } else {
+                        console.warn('No data available:', data);
+                        document.getElementById('dataStats').style.display = 'none';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching data statistics:', error);
+                    document.getElementById('dataStats').style.display = 'none';
+                });
+        }
+        
+        // Update chart and statistics when form changes
+        document.getElementById('chartForm').addEventListener('change', function(e) {
+            if (e.target.id === 'citySelect' || e.target.id === 'pollutantSelect') {
+                updateChart();
+            }
+        });
+        
+        // Initial load: fetch statistics if city and pollutant are already selected
+        window.addEventListener('load', function() {
+            const city = document.getElementById('citySelect').value;
+            const pollutant = document.getElementById('pollutantSelect').value;
+            if (city && pollutant) {
+                updateChart();
+            }
+        });
+    </script>
+</body>
+</html>
